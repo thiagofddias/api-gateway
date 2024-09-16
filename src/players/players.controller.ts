@@ -1,9 +1,4 @@
 import {
-  ClientProxy,
-  ClientProxyFactory,
-  Transport,
-} from '@nestjs/microservices';
-import {
   Controller,
   Post,
   Body,
@@ -16,19 +11,27 @@ import {
   Param,
   BadRequestException,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { defaultIfEmpty, Observable } from 'rxjs';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player-dto';
 import { ValidatorParamnsPipe } from 'src/common/pipes/validator-paramns.pipe';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ClientProxySmartRanking } from 'src/proxyrmq/client-proxy';
+import { AwsService } from 'src/aws/aws.service';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 @Controller('api/v1/players')
 export class PlayersController {
   private logger = new Logger(PlayersController.name);
 
-  private clientAdminBackend: ClientProxy;
-
-  constructor() {
+  constructor(
+    private clientProxySmartRanking: ClientProxySmartRanking,
+    private awsService: AwsService,
+  ) {
+    // Inicializando o clientAdminBackend no construtor
     this.clientAdminBackend = ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
@@ -37,6 +40,9 @@ export class PlayersController {
       },
     });
   }
+
+  private clientAdminBackend =
+    this.clientProxySmartRanking.getClientProxyAdminBackendInstance();
 
   @Post()
   @UsePipes(ValidationPipe)
@@ -53,6 +59,28 @@ export class PlayersController {
     } else {
       throw new BadRequestException('Category not found');
     }
+  }
+
+  @Post('/:_id/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadPhotoPlayer(@UploadedFile() file, @Param('_id') _id: string) {
+    const player = await this.clientAdminBackend.send('consult-player', _id);
+
+    if (!player) {
+      throw new BadRequestException('Player not found');
+    }
+
+    const urlPhotoPlayer = await this.awsService.uploadFile(file, _id);
+
+    const updatePlayerDto: UpdatePlayerDto = {};
+    updatePlayerDto.urlPhotoPlayer = urlPhotoPlayer.url;
+
+    await this.clientAdminBackend.emit('udpate-player', {
+      id: _id,
+      player: updatePlayerDto,
+    });
+
+    return this.clientAdminBackend.send('consult-player', _id);
   }
 
   @Get()
