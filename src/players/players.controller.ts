@@ -14,7 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
-import { defaultIfEmpty, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { UpdatePlayerDto } from './dto/update-player-dto';
 import { ValidatorParamnsPipe } from 'src/common/pipes/validator-paramns.pipe';
@@ -31,7 +31,6 @@ export class PlayersController {
     private clientProxySmartRanking: ClientProxySmartRanking,
     private awsService: AwsService,
   ) {
-    // Inicializando o clientAdminBackend no construtor
     this.clientAdminBackend = ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
@@ -64,7 +63,7 @@ export class PlayersController {
   @Post('/:_id/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadPhotoPlayer(@UploadedFile() file, @Param('_id') _id: string) {
-    const player = await this.clientAdminBackend.send('consult-player', _id);
+    const player = this.clientAdminBackend.send('consult-player', _id);
 
     if (!player) {
       throw new BadRequestException('Player not found');
@@ -75,7 +74,9 @@ export class PlayersController {
     const updatePlayerDto: UpdatePlayerDto = {};
     updatePlayerDto.urlPhotoPlayer = urlPhotoPlayer.url;
 
-    await this.clientAdminBackend.emit('udpate-player', {
+    console.log('updatePlayerDto: ', updatePlayerDto.urlPhotoPlayer);
+
+    this.clientAdminBackend.emit('update-player', {
       id: _id,
       player: updatePlayerDto,
     });
@@ -85,9 +86,7 @@ export class PlayersController {
 
   @Get()
   consultPlayer(@Query('idPlayer') _id: string): Observable<any> {
-    return this.clientAdminBackend
-      .send('consult-player', _id ? _id : '')
-      .pipe(defaultIfEmpty({ message: 'No players found' }));
+    return this.clientAdminBackend.send('consult-player', _id ? _id : '');
   }
 
   @Put('/:_id')

@@ -4,7 +4,7 @@ import {
   Transport,
 } from '@nestjs/microservices';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from 'aws-sdk';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ClientProxySmartRanking {
@@ -13,12 +13,27 @@ export class ClientProxySmartRanking {
   static getClientProxyAdminBackendInstance() {
     throw new Error('Method not implemented.');
   }
+
   getClientProxyAdminBackendInstance(): ClientProxy {
     return ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
-        urls: [`amqp://user:q7W2UQk249gR@18.210.17.173:5672/smartranking`],
+        urls: [
+          `amqp://${this.configService.get<string>('RABBITMQ_USER')}:${this.configService.get<string>('RABBITMQ_PASSWORD')}@${this.configService.get<string>('RABBITMQ_URL')}`,
+        ],
         queue: 'admin-backend',
+      },
+    });
+  }
+
+  getClientProxyChallengesInstance(): ClientProxy {
+    return ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: [
+          `amqp://${this.configService.get<string>('RABBITMQ_USER')}:${this.configService.get<string>('RABBITMQ_PASSWORD')}@${this.configService.get<string>('RABBITMQ_URL')}`,
+        ],
+        queue: 'challenges',
       },
     });
   }
