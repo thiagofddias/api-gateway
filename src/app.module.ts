@@ -18,5 +18,6 @@ import { ChallengesModule } from './challenges/challenges.module';
   ],
   controllers: [],
   providers: [ClientProxySmartRanking],
+  exports: [ClientProxySmartRanking],
 })
 export class AppModule {}
