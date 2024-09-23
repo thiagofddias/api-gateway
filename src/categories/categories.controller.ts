@@ -29,7 +29,7 @@ export class CategoriesController {
     this.clientAdminBackend = ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
-        urls: ['amqp://dev:devpass@localhost:5672'],
+        urls: ['amqp://dev:devpass@localhost:5672/smartranking'],
         queue: 'admin-backend',
       },
     });

@@ -4,21 +4,28 @@ import {
   Transport,
 } from '@nestjs/microservices';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from 'aws-sdk';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ClientProxySmartRanking {
   constructor(private configService: ConfigService) {}
 
-  static getClientProxyAdminBackendInstance() {
-    throw new Error('Method not implemented.');
-  }
   getClientProxyAdminBackendInstance(): ClientProxy {
     return ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
-        urls: [`amqp://user:q7W2UQk249gR@18.210.17.173:5672/smartranking`],
+        urls: ['amqp://dev:devpass@localhost:5672/smartranking'],
         queue: 'admin-backend',
+      },
+    });
+  }
+
+  getClientProxyChallengesInstance(): ClientProxy {
+    return ClientProxyFactory.create({
+      transport: Transport.RMQ,
+      options: {
+        urls: ['amqp://dev:devpass@localhost:5672/smartranking'],
+        queue: 'challenges',
       },
     });
   }
