@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ClientProxySmartRanking } from 'src/proxyrmq/client-proxy';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
-import { Player } from 'src/players/interface/player.interface';
+import { Player } from '../players/interface/player.interface';
 import { firstValueFrom } from 'rxjs';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { ChallengeStatusValidatorPipe } from './pipes/challenge-status-validation.pipe';
@@ -39,10 +39,12 @@ export class ChallengesController {
   @Post()
   @UsePipes(ValidationPipe)
   async createChallenge(@Body() createChallengeDto: CreateChallengeDto) {
-    this.logger.log(`createChallenge: ${JSON.stringify(createChallengeDto)}`);
+    this.logger.log(
+      `createChallengeDto: ${JSON.stringify(createChallengeDto)}`,
+    );
 
     const players: Player[] = await firstValueFrom(
-      this.clientAdminBackend.send<Player[]>('consult-players', ''),
+      this.clientAdminBackend.send('consult-player', ''),
     );
 
     createChallengeDto.players.map((playerDto) => {
@@ -52,18 +54,25 @@ export class ChallengesController {
 
       this.logger.log(`playerFilter: ${JSON.stringify(playerFilter)}`);
 
+      console.log('serase');
       if (playerFilter.length == 0) {
         throw new BadRequestException(
           `The id ${playerDto._id} not is a player!`,
         );
       }
 
+      console.log('empiness machine');
+
       if (playerFilter[0].category != createChallengeDto.category) {
         throw new BadRequestException(
           `The player ${playerFilter[0]._id} not play in the same category!`,
         );
       }
+
+      console.log('nerdei');
     });
+
+    console.log('Aqui eu chego');
 
     const requesterItsPlayerInMatch: Player[] =
       createChallengeDto.players.filter(
@@ -80,11 +89,9 @@ export class ChallengesController {
       );
     }
 
-    const category = await firstValueFrom(
-      this.clientAdminBackend.send(
-        'consult-categories',
-        createChallengeDto.category,
-      ),
+    const category = this.clientAdminBackend.send(
+      'consult-categories',
+      createChallengeDto.category,
     );
 
     this.logger.log(`category: ${JSON.stringify(category)}`);
@@ -93,7 +100,14 @@ export class ChallengesController {
       throw new BadRequestException(`The category is invalid!`);
     }
 
+    console.log('Aqui eu chego categoria');
+
+    console.log('dto CreateChallenge', createChallengeDto);
+
     this.clientChallenges.emit('create-challenge', createChallengeDto);
+
+    console.log('criei');
+    return this.clientAdminBackend.send('create-challenge', createChallengeDto);
   }
 
   @Get()
@@ -115,7 +129,7 @@ export class ChallengesController {
   @Put('/:challenge')
   async updateChalllenge(
     @Body(ChallengeStatusValidatorPipe) udpateChallengeDto: UpdateChallengeDto,
-    @Param('challenge') _id: string,
+    @Param('challenges') _id: string,
   ) {
     const challenge: Challenge = await firstValueFrom(
       this.clientChallenges.send('consult-challenge', { _id: _id }),
@@ -140,7 +154,7 @@ export class ChallengesController {
   @Post('/:challenge/match')
   async AssignMatchChallenge(
     @Body(ValidationPipe) asignChallengeToMatchDto: AsignChallengeToMatchDto,
-    @Param('challenge') _id: string,
+    @Param('challenges') _id: string,
   ) {
     const challenge: Challenge = await firstValueFrom(
       this.clientChallenges.send('consult-challenge', { _id }),
@@ -175,7 +189,9 @@ export class ChallengesController {
   }
 
   @Delete('/:challenge')
-  async deleteChallenge(@Param('challenge', ValidatorParamnsPipe) _id: string) {
+  async deleteChallenge(
+    @Param('challenges', ValidatorParamnsPipe) _id: string,
+  ) {
     const challengeExists: Challenge = await firstValueFrom(
       this.clientChallenges.send('consult-challenge', { _id }),
     );

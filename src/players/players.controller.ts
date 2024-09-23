@@ -34,7 +34,7 @@ export class PlayersController {
     this.clientAdminBackend = ClientProxyFactory.create({
       transport: Transport.RMQ,
       options: {
-        urls: ['amqp://dev:devpass@localhost:5672'],
+        urls: ['amqp://dev:devpass@localhost:5672/smartranking'],
         queue: 'admin-backend',
       },
     });
@@ -48,7 +48,7 @@ export class PlayersController {
   async createPlayer(@Body() createPlayerDto: CreatePlayerDto) {
     this.logger.log(`createPlayerDto: ${JSON.stringify(createPlayerDto)}`);
 
-    const category = await this.clientAdminBackend.send(
+    const category = this.clientAdminBackend.send(
       'consult-category',
       createPlayerDto.category,
     );
